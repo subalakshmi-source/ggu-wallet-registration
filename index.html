@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GGU Wallet Registration</title>
+<meta name="description" content="Register your classroom wallet for GGU.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* ───────────────────────── CONFIG LIVES IN THE <script> AT THE BOTTOM ───────────────────────── */
+/* Layout: one narrow column, a quiet step rail on top, a single card that changes per step. */
+:root{
+  --bg:#f5f6f8;
+  --surface:#ffffff;
+  --ink:#0d1117;
+  --muted:#5b6472;
+  --line:#e3e6eb;
+  --accent:#1f4cf0;
+  --accent-ink:#ffffff;
+  --accent-soft:#e8edfe;
+  --ok:#0f7a4f;
+  --ok-soft:#e3f4ec;
+  --err:#b42318;
+  --err-soft:#fdecea;
+  --font:"Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius:14px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0d11; --surface:#13161c; --ink:#eef0f4; --muted:#9aa3b2; --line:#252a33;
+    --accent:#6f8cff; --accent-ink:#0b0d11; --accent-soft:#1a2240;
+    --ok:#4cc38a; --ok-soft:#10261c; --err:#ff7b72; --err-soft:#2b1513;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0d11; --surface:#13161c; --ink:#eef0f4; --muted:#9aa3b2; --line:#252a33;
+  --accent:#6f8cff; --accent-ink:#0b0d11; --accent-soft:#1a2240;
+  --ok:#4cc38a; --ok-soft:#10261c; --err:#ff7b72; --err-soft:#2b1513;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--font); font-size:16px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:clamp(28px, 7vh, 72px) 48px;
+}
+[hidden]{display:none!important}
+.wrap{max-width:520px; margin:0 auto; display:flex; flex-direction:column; gap:28px}
+
+header{display:flex; flex-direction:column; gap:10px}
+.eyebrow{font-size:12px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+h1{font-size:clamp(28px, 6vw, 36px); line-height:1.12; letter-spacing:-.025em; font-weight:700; margin:0; text-wrap:balance}
+.lede{margin:0; color:var(--muted); max-width:52ch}
+
+/* step rail */
+.rail{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; list-style:none; margin:0; padding:0}
+.rail li{display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--muted); font-weight:500}
+.rail li::before{content:""; height:3px; border-radius:3px; background:var(--line); transition:background .25s}
+.rail li.on{color:var(--ink)}
+.rail li.on::before,.rail li.done::before{background:var(--accent)}
+.rail .n{font-variant-numeric:tabular-nums; margin-right:6px; opacity:.7}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:clamp(20px, 5vw, 32px); display:flex; flex-direction:column; gap:20px}
+.card h2{margin:0; font-size:20px; letter-spacing:-.015em; font-weight:600}
+.card p.hint{margin:-12px 0 0; color:var(--muted); font-size:15px}
+
+/* wallet list */
+.wallets{display:flex; flex-direction:column; gap:10px}
+.wallet{
+  display:flex; align-items:center; gap:14px; width:100%;
+  padding:14px 16px; border:1px solid var(--line); border-radius:12px;
+  background:transparent; color:inherit; font:inherit; text-align:left; cursor:pointer;
+  transition:border-color .15s, background .15s;
+}
+.wallet:hover{border-color:var(--accent)}
+.wallet:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.wallet img,.wallet .ph{width:32px; height:32px; border-radius:8px; flex:none}
+.wallet .ph{display:grid; place-items:center; background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:14px}
+.wallet .meta{display:flex; flex-direction:column; min-width:0; flex:1}
+.wallet .name{font-weight:600}
+.wallet .sub{font-size:13px; color:var(--muted)}
+.wallet .arrow{color:var(--muted); font-size:18px}
+.wallet[aria-busy="true"]{opacity:.6; pointer-events:none}
+
+.empty{border:1px dashed var(--line); border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:12px; font-size:15px}
+.empty strong{font-weight:600}
+.empty .links{display:flex; flex-wrap:wrap; gap:8px}
+
+/* form */
+label{font-weight:600; font-size:14px}
+.field{display:flex; flex-direction:column; gap:8px}
+input[type="text"],input[type="password"]{
+  width:100%; font:inherit; font-size:17px; color:var(--ink);
+  padding:13px 14px; border-radius:10px; border:1px solid var(--line); background:var(--bg);
+  transition:border-color .15s, box-shadow .15s;
+}
+input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
+.small{font-size:13px; color:var(--muted)}
+
+.connected{display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:10px; font-size:14px; min-width:0}
+.dot{width:8px; height:8px; border-radius:50%; background:var(--ok); flex:none}
+.addr{font-variant-numeric:tabular-nums; letter-spacing:.01em; word-break:break-all}
+
+/* review */
+dl.review{margin:0; display:flex; flex-direction:column; border-top:1px solid var(--line)}
+dl.review div{display:grid; grid-template-columns:110px 1fr; gap:12px; padding:14px 0; border-bottom:1px solid var(--line)}
+dl.review dt{color:var(--muted); font-size:14px}
+dl.review dd{margin:0; font-weight:500; min-width:0; word-break:break-word}
+.msg{white-space:pre-wrap; font-family:var(--font); font-size:13px; color:var(--muted); background:var(--bg); border-radius:10px; padding:12px 14px; margin:0; overflow-x:auto}
+details summary{cursor:pointer; font-size:14px; color:var(--muted)}
+details[open] summary{margin-bottom:10px}
+
+/* buttons */
+.actions{display:flex; gap:10px; flex-wrap:wrap}
+.btn{
+  appearance:none; border:1px solid transparent; border-radius:10px; cursor:pointer;
+  font:inherit; font-weight:600; font-size:15px; padding:12px 18px;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px; text-decoration:none;
+  transition:opacity .15s, background .15s;
+}
+.btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.btn-primary{background:var(--accent); color:var(--accent-ink); flex:1}
+.btn-primary:hover{opacity:.92}
+.btn-primary:disabled{opacity:.45; cursor:not-allowed}
+.btn-ghost{background:transparent; color:var(--ink); border-color:var(--line)}
+.btn-ghost:hover{border-color:var(--muted)}
+.btn-sm{font-size:13px; padding:8px 12px}
+
+.alert{border-radius:10px; padding:12px 14px; font-size:14px}
+.alert.err{background:var(--err-soft); color:var(--err)}
+.alert.ok{background:var(--ok-soft); color:var(--ok)}
+
+.done{align-items:flex-start}
+.check{width:44px; height:44px; border-radius:50%; background:var(--ok-soft); color:var(--ok); display:grid; place-items:center}
+
+.spinner{width:16px; height:16px; border-radius:50%; border:2px solid currentColor; border-right-color:transparent; animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+footer{font-size:13px; color:var(--muted); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
+footer a{color:inherit}
+
+/* admin */
+.admin-wrap{max-width:960px}
+.toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between}
+.stat{font-size:14px; color:var(--muted)}
+.stat b{color:var(--ink); font-variant-numeric:tabular-nums}
+.table-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:14px}
+th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); white-space:nowrap}
+th{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:600}
+tr:last-child td{border-bottom:0}
+td.addr{font-variant-numeric:tabular-nums}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important; animation:none!important}}
+@media (max-width:420px){dl.review div{grid-template-columns:1fr; gap:2px}}
+</style>
+</head>
+<body>
+
+<!-- ─────────────── STUDENT VIEW ─────────────── -->
+<main class="wrap" id="student">
+  <header>
+    <span class="eyebrow" id="eyebrow">Golden Gate University</span>
+    <h1 id="title">Register your classroom wallet</h1>
+    <p class="lede" id="lede">Connect the wallet you'll use in class, add your name, and sign a short message to prove the address is yours. Signing is free and sends no transaction.</p>
+  </header>
+
+  <ol class="rail" aria-label="Progress">
+    <li id="r1" class="on"><span><span class="n">1</span>Wallet</span></li>
+    <li id="r2"><span><span class="n">2</span>Name</span></li>
+    <li id="r3"><span><span class="n">3</span>Review &amp; sign</span></li>
+  </ol>
+
+  <!-- Step 1 -->
+  <section class="card" id="s1" aria-labelledby="s1h">
+    <h2 id="s1h">Choose your classroom wallet</h2>
+    <p class="hint">Pick the wallet you set up for this course.</p>
+    <div class="wallets" id="walletList" role="list"></div>
+    <div class="empty" id="noWallet" hidden>
+      <strong>No browser wallet found.</strong>
+      <span>On a laptop, install a wallet extension such as MetaMask or Coinbase Wallet, then reload. On a phone, open this page inside your wallet app's built-in browser.</span>
+      <div class="links">
+        <a class="btn btn-ghost btn-sm" id="mmDeep" href="#" target="_blank" rel="noopener">Open in MetaMask app</a>
+        <a class="btn btn-ghost btn-sm" id="cbDeep" href="#" target="_blank" rel="noopener">Open in Coinbase Wallet</a>
+        <a class="btn btn-ghost btn-sm" href="https://metamask.io/download/" target="_blank" rel="noopener">Get MetaMask</a>
+      </div>
+    </div>
+    <div class="alert err" id="e1" hidden></div>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="card" id="s2" hidden aria-labelledby="s2h">
+    <h2 id="s2h">Add your name</h2>
+    <div class="connected"><span class="dot"></span><span id="walletLabel"></span>&nbsp;·&nbsp;<span class="addr" id="addrShort"></span></div>
+    <form id="nameForm" novalidate>
+      <div class="field">
+        <label for="fullName">Full name</label>
+        <input type="text" id="fullName" name="fullName" autocomplete="name" placeholder="As it appears on the class roster" maxlength="80" required>
+        <span class="small">Use the same name your instructor has on the roster.</span>
+      </div>
+    </form>
+    <div class="alert err" id="e2" hidden></div>
+    <div class="actions">
+      <button class="btn btn-ghost" type="button" id="back2">Back</button>
+      <button class="btn btn-primary" type="submit" form="nameForm" id="next2">Continue</button>
+    </div>
+  </section>
+
+  <!-- Step 3 -->
+  <section class="card" id="s3" hidden aria-labelledby="s3h">
+    <h2 id="s3h">Review and sign</h2>
+    <p class="hint">Check your details. Your wallet will ask you to sign this message.</p>
+    <dl class="review">
+      <div><dt>Name</dt><dd id="rvName"></dd></div>
+      <div><dt>Wallet</dt><dd id="rvWallet"></dd></div>
+      <div><dt>Address</dt><dd class="addr" id="rvAddr"></dd></div>
+    </dl>
+    <details>
+      <summary>Message you'll sign</summary>
+      <pre class="msg" id="rvMsg"></pre>
+    </details>
+    <div class="alert err" id="e3" hidden></div>
+    <div class="actions">
+      <button class="btn btn-ghost" type="button" id="back3">Back</button>
+      <button class="btn btn-primary" type="button" id="signBtn">Sign and register</button>
+    </div>
+  </section>
+
+  <!-- Done -->
+  <section class="card done" id="s4" hidden aria-live="polite">
+    <div class="check" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </div>
+    <h2>You're registered</h2>
+    <p class="hint" style="margin:0" id="doneText"></p>
+    <div class="alert ok" id="localNote" hidden></div>
+    <button class="btn btn-ghost" type="button" id="again">Register another wallet</button>
+  </section>
+
+  <footer>
+    <span id="foot">Your name, address and signature go only to your instructor.</span>
+    <a href="#admin">Instructor</a>
+  </footer>
+</main>
+
+<!-- ─────────────── INSTRUCTOR VIEW ─────────────── -->
+<main class="wrap admin-wrap" id="admin" hidden>
+  <header>
+    <span class="eyebrow">Instructor</span>
+    <h1>Registrations</h1>
+  </header>
+
+  <section class="card" id="lockCard" style="max-width:520px">
+    <h2>Unlock entries</h2>
+    <form id="keyForm" class="field" novalidate>
+      <label for="adminKey">Admin key</label>
+      <input type="password" id="adminKey" autocomplete="current-password" placeholder="The ADMIN_KEY from your Apps Script">
+    </form>
+    <div class="alert err" id="eA" hidden></div>
+    <div class="actions">
+      <a class="btn btn-ghost" href="#">Back to form</a>
+      <button class="btn btn-primary" type="submit" form="keyForm" id="unlockBtn">Show entries</button>
+    </div>
+  </section>
+
+  <section id="tableCard" hidden style="display:flex; flex-direction:column; gap:14px">
+    <div class="toolbar">
+      <span class="stat"><b id="count">0</b> registrations</span>
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" type="button" id="refreshBtn">Refresh</button>
+        <button class="btn btn-ghost btn-sm" type="button" id="copyBtn">Copy addresses</button>
+        <button class="btn btn-primary btn-sm" type="button" id="csvBtn">Download CSV</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Wallet address</th><th>Wallet app</th><th>Registered</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <span class="small" id="adminNote"></span>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   CONFIG — edit these, then upload this file anywhere.
+   SCRIPT_URL: the Web App URL from Google Apps Script (see README).
+   Leave it empty to run in "local mode" (entries are kept in this
+   browser only — fine for testing, or one shared classroom laptop).
+   ═══════════════════════════════════════════════════════════════ */
+const CONFIG = {
+  SCRIPT_URL: "",
+  SCHOOL: "Golden Gate University",
+  CLASS: "GGU",
+  TITLE: "Register your classroom wallet",
+};
+
+/* ─────────── helpers ─────────── */
+const $ = (id) => document.getElementById(id);
+const short = (a) => a ? a.slice(0, 6) + "…" + a.slice(-4) : "";
+const show = (el, msg) => { el.textContent = msg; el.hidden = !msg; };
+const LS_KEY = "ggu-registrations";
+const lsGet = () => { try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; } };
+const lsSet = (v) => { try { localStorage.setItem(LS_KEY, JSON.stringify(v)); return true; } catch { return false; } };
+
+$("eyebrow").textContent = CONFIG.SCHOOL;
+$("title").textContent = CONFIG.TITLE;
+if (!CONFIG.SCRIPT_URL) $("foot").textContent = "Local mode: entries are saved in this browser only.";
+
+/* ─────────── state ─────────── */
+const state = { provider: null, walletName: "", walletIcon: "", address: "", name: "", message: "", issued: "" };
+
+function go(step) {
+  [1, 2, 3, 4].forEach((n) => { $("s" + n).hidden = n !== step; });
+  [1, 2, 3].forEach((n) => {
+    const r = $("r" + n);
+    r.classList.toggle("on", n === step || (step === 4 && n === 3));
+    r.classList.toggle("done", n < step);
+  });
+  const focusTarget = { 2: "fullName", 3: "signBtn" }[step];
+  if (focusTarget) setTimeout(() => $(focusTarget).focus(), 50);
+}
+
+/* ─────────── step 1: discover wallets (EIP-6963 + legacy fallback) ─────────── */
+const found = new Map();
+function addWallet(info, provider) {
+  const key = info.rdns || info.name;
+  if (found.has(key)) return;
+  found.set(key, { info, provider });
+  renderWallets();
+}
+function renderWallets() {
+  const list = $("walletList");
+  list.textContent = "";
+  for (const { info, provider } of found.values()) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "wallet"; b.setAttribute("role", "listitem");
+    let icon;
+    if (info.icon && /^data:image\//.test(info.icon)) { icon = document.createElement("img"); icon.src = info.icon; icon.alt = ""; }
+    else { icon = document.createElement("span"); icon.className = "ph"; icon.textContent = (info.name || "W")[0]; }
+    const meta = document.createElement("span"); meta.className = "meta";
+    const n = document.createElement("span"); n.className = "name"; n.textContent = info.name;
+    const s = document.createElement("span"); s.className = "sub"; s.textContent = "Detected in this browser";
+    meta.append(n, s);
+    const arrow = document.createElement("span"); arrow.className = "arrow"; arrow.textContent = "→"; arrow.setAttribute("aria-hidden", "true");
+    b.append(icon, meta, arrow);
+    b.addEventListener("click", () => connect(info, provider, b));
+    list.append(b);
+  }
+  $("noWallet").hidden = found.size > 0;
+}
+window.addEventListener("eip6963:announceProvider", (e) => addWallet(e.detail.info, e.detail.provider));
+window.dispatchEvent(new Event("eip6963:requestProvider"));
+setTimeout(() => {
+  if (found.size === 0 && window.ethereum) {
+    const eth = window.ethereum;
+    const name = eth.isCoinbaseWallet ? "Coinbase Wallet" : eth.isRabby ? "Rabby" : eth.isBraveWallet ? "Brave Wallet" : eth.isMetaMask ? "MetaMask" : "Browser wallet";
+    addWallet({ name, rdns: "legacy" }, eth);
+  }
+  renderWallets();
+}, 400);
+
+const here = location.host + location.pathname;
+$("mmDeep").href = "https://metamask.app.link/dapp/" + here;
+$("cbDeep").href = "https://go.cb-w.com/dapp?cb_url=" + encodeURIComponent(location.href.split("#")[0]);
+
+async function connect(info, provider, btn) {
+  show($("e1"), "");
+  btn.setAttribute("aria-busy", "true");
+  try {
+    const accounts = await provider.request({ method: "eth_requestAccounts" });
+    if (!accounts || !accounts[0]) throw new Error("No account was shared.");
+    state.provider = provider;
+    state.walletName = info.name;
+    state.address = ethers.getAddress(accounts[0]);
+    $("walletLabel").textContent = info.name;
+    $("addrShort").textContent = short(state.address);
+    provider.on?.("accountsChanged", (a) => {
+      if (a && a[0]) { state.address = ethers.getAddress(a[0]); $("addrShort").textContent = short(state.address); buildReview(); }
+    });
+    go(2);
+  } catch (err) {
+    show($("e1"), err?.code === 4001 ? "You declined the connection. Choose a wallet to try again." : "Couldn't connect: " + (err?.message || err));
+  } finally {
+    btn.removeAttribute("aria-busy");
+  }
+}
+
+/* ─────────── step 2: name ─────────── */
+$("back2").onclick = () => go(1);
+$("nameForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const v = $("fullName").value.replace(/\s+/g, " ").trim();
+  if (v.length < 2) return show($("e2"), "Enter your full name.");
+  show($("e2"), "");
+  state.name = v;
+  buildReview();
+  go(3);
+});
+
+/* ─────────── step 3: review + sign ─────────── */
+function buildReview() {
+  state.issued = new Date().toISOString();
+  state.message =
+    `${CONFIG.CLASS} classroom wallet registration\n\n` +
+    `I confirm this wallet belongs to me.\n\n` +
+    `Name: ${state.name}\n` +
+    `Address: ${state.address}\n` +
+    `Site: ${location.host || "local"}\n` +
+    `Issued: ${state.issued}`;
+  $("rvName").textContent = state.name;
+  $("rvWallet").textContent = state.walletName;
+  $("rvAddr").textContent = state.address;
+  $("rvMsg").textContent = state.message;
+}
+$("back3").onclick = () => go(2);
+
+$("signBtn").addEventListener("click", async () => {
+  const btn = $("signBtn");
+  show($("e3"), "");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Waiting for your wallet…';
+  try {
+    const hexMsg = ethers.hexlify(ethers.toUtf8Bytes(state.message));
+    const signature = await state.provider.request({ method: "personal_sign", params: [hexMsg, state.address] });
+    const recovered = ethers.verifyMessage(state.message, signature);
+    if (recovered.toLowerCase() !== state.address.toLowerCase()) throw new Error("The signature didn't match this address. Switch to the right account and try again.");
+
+    btn.innerHTML = '<span class="spinner"></span>Saving…';
+    const entry = {
+      name: state.name, address: state.address, wallet: state.walletName,
+      message: state.message, signature, issued: state.issued,
+    };
+    await save(entry);
+    $("doneText").textContent = `${state.name}, your wallet ${short(state.address)} is on the class list.`;
+    $("localNote").hidden = !!CONFIG.SCRIPT_URL;
+    $("localNote").textContent = "Saved in this browser (local mode). Your instructor hasn't connected a shared sheet yet.";
+    go(4);
+  } catch (err) {
+    const msg = err?.code === 4001 || /reject|denied/i.test(err?.message || "")
+      ? "You cancelled the signature. Nothing was saved."
+      : (err?.message || String(err));
+    show($("e3"), msg);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Sign and register";
+  }
+});
+
+async function save(entry) {
+  if (!CONFIG.SCRIPT_URL) {
+    const all = lsGet().filter((r) => r.address.toLowerCase() !== entry.address.toLowerCase());
+    all.push({ ...entry, timestamp: new Date().toISOString() });
+    if (!lsSet(all)) throw new Error("This browser blocked saving. Try another browser.");
+    return;
+  }
+  // text/plain avoids a CORS preflight, which Apps Script can't answer.
+  const res = await fetch(CONFIG.SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "register", ...entry }) });
+  let data = {};
+  try { data = await res.json(); } catch {}
+  if (!res.ok || !data.ok) throw new Error(data.error || "The class sheet didn't accept the entry. Try again in a minute.");
+}
+
+$("again").onclick = () => {
+  Object.assign(state, { provider: null, walletName: "", address: "", name: "", message: "" });
+  $("fullName").value = "";
+  go(1);
+};
+
+/* ─────────── instructor view ─────────── */
+let entries = [];
+function route() {
+  const admin = location.hash === "#admin";
+  $("student").hidden = admin;
+  $("admin").hidden = !admin;
+  if (admin && !CONFIG.SCRIPT_URL) loadLocal();
+}
+window.addEventListener("hashchange", route);
+route();
+
+function loadLocal() {
+  $("lockCard").hidden = true;
+  entries = lsGet();
+  $("adminNote").textContent = "Local mode: showing entries saved in this browser only. Add SCRIPT_URL to collect from every student.";
+  renderTable();
+}
+
+$("keyForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await loadRemote();
+});
+$("refreshBtn").onclick = () => CONFIG.SCRIPT_URL ? loadRemote() : loadLocal();
+
+async function loadRemote() {
+  const key = $("adminKey").value.trim();
+  show($("eA"), "");
+  if (!key) return show($("eA"), "Enter your admin key.");
+  const btn = $("unlockBtn"); btn.disabled = true;
+  try {
+    const res = await fetch(CONFIG.SCRIPT_URL + "?key=" + encodeURIComponent(key));
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Wrong key.");
+    entries = data.entries || [];
+    $("lockCard").hidden = true;
+    $("adminNote").textContent = "Live from your Google Sheet. You can also open the sheet and use File → Download.";
+    renderTable();
+  } catch (err) {
+    show($("eA"), err.message === "Failed to fetch" ? "Couldn't reach the Apps Script. Check SCRIPT_URL and its sharing setting." : err.message);
+  } finally { btn.disabled = false; }
+}
+
+function renderTable() {
+  $("tableCard").hidden = false;
+  $("count").textContent = entries.length;
+  const tb = $("rows"); tb.textContent = "";
+  if (!entries.length) {
+    const tr = document.createElement("tr"); const td = document.createElement("td");
+    td.colSpan = 5; td.textContent = "No registrations yet."; td.style.color = "var(--muted)";
+    tr.append(td); tb.append(tr); return;
+  }
+  entries.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    const cells = [i + 1, r.name, r.address, r.wallet, r.timestamp ? new Date(r.timestamp).toLocaleString() : ""];
+    cells.forEach((c, j) => { const td = document.createElement("td"); td.textContent = c; if (j === 2) td.className = "addr"; tr.append(td); });
+    tb.append(tr);
+  });
+}
+
+function toCSV(rows) {
+  const cols = ["name", "address", "wallet", "timestamp", "signature", "message"];
+  const esc = (v) => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  return [cols.join(","), ...rows.map((r) => cols.map((c) => esc(r[c])).join(","))].join("\r\n");
+}
+$("csvBtn").onclick = () => {
+  const blob = new Blob(["﻿" + toCSV(entries)], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${CONFIG.CLASS.toLowerCase()}-wallets-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$("copyBtn").onclick = async () => {
+  const text = entries.map((r) => `${r.name}\t${r.address}`).join("\n");
+  try { await navigator.clipboard.writeText(text); $("copyBtn").textContent = "Copied"; }
+  catch { $("copyBtn").textContent = "Copy failed"; }
+  setTimeout(() => ($("copyBtn").textContent = "Copy addresses"), 1500);
+};
+</script>
+</body>
+</html>
