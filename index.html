@@ -169,7 +169,6 @@ td.addr{font-variant-numeric:tabular-nums}
 <!-- ─────────────── STUDENT VIEW ─────────────── -->
 <main class="wrap" id="student">
   <header>
-    <span class="eyebrow" id="eyebrow">Golden Gate University</span>
     <h1 id="title">Register your classroom wallet</h1>
     <p class="lede" id="lede">Connect the wallet you'll use in class, add your name, and sign a short message to prove the address is yours. Signing is free and sends no transaction.</p>
   </header>
@@ -190,8 +189,6 @@ td.addr{font-variant-numeric:tabular-nums}
       <span>On a laptop, install a wallet extension such as MetaMask or Coinbase Wallet, then reload. On a phone, open this page inside your wallet app's built-in browser.</span>
       <div class="links">
         <a class="btn btn-ghost btn-sm" id="mmDeep" href="#" target="_blank" rel="noopener">Open in MetaMask app</a>
-        <a class="btn btn-ghost btn-sm" id="cbDeep" href="#" target="_blank" rel="noopener">Open in Coinbase Wallet</a>
-        <a class="btn btn-ghost btn-sm" href="https://metamask.io/download/" target="_blank" rel="noopener">Get MetaMask</a>
       </div>
     </div>
     <div class="alert err" id="e1" hidden></div>
@@ -301,7 +298,6 @@ td.addr{font-variant-numeric:tabular-nums}
    ═══════════════════════════════════════════════════════════════ */
 const CONFIG = {
   SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyDWRygcnmOvGiKlZZoH5YgtIiPDvxYQ7VNxPRT9XAni-bozdofkQ7gxf1ftldKBIIJaA/exec",
-  SCHOOL: "Golden Gate University",
   CLASS: "GGU",
   TITLE: "Register your classroom wallet",
 };
@@ -314,7 +310,6 @@ const LS_KEY = "ggu-registrations";
 const lsGet = () => { try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; } };
 const lsSet = (v) => { try { localStorage.setItem(LS_KEY, JSON.stringify(v)); return true; } catch { return false; } };
 
-$("eyebrow").textContent = CONFIG.SCHOOL;
 $("title").textContent = CONFIG.TITLE;
 if (!CONFIG.SCRIPT_URL) $("foot").textContent = "Local mode: entries are saved in this browser only.";
 
@@ -373,7 +368,6 @@ setTimeout(() => {
 
 const here = location.host + location.pathname;
 $("mmDeep").href = "https://metamask.app.link/dapp/" + here;
-$("cbDeep").href = "https://go.cb-w.com/dapp?cb_url=" + encodeURIComponent(location.href.split("#")[0]);
 
 async function connect(info, provider, btn) {
   show($("e1"), "");
